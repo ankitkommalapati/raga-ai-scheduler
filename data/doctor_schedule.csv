@@ -1,0 +1,2 @@
+doctor_id,doctor_name,specialty,date,slot_start,slot_end,available
+D1,Dr. Maya Rao,Allergy & Immunology,2025-09-10,2025-09-10 09:00,2025-09-10 09:30,True

@@ -1,0 +1,3 @@
+patient_id,first_name,last_name,dob,gender,home_phone,cell_phone,email,street,city,state,zip,is_allergy_patient
+P1001,Aarav,Sharma,1995-05-10,Male,+917000000001,+917000000002,aarav.sharma1@gmail.com,12 Park Street,Bengaluru,KA,560001,False
+
