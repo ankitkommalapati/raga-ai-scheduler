@@ -1,0 +1,1 @@
+appointment_id,patient_id,patient_name,dob,patient_type,doctor_id,doctor_name,slot_start,slot_end,clinic_location,insurance_carrier,member_id,group_number,intake_form_sent,confirmation_sent,status
