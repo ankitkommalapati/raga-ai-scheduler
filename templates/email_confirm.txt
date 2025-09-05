@@ -1,0 +1,9 @@
+Subject: Appointment Confirmation - {doctor_name} on {slot_date}
+
+Hi {first_name},
+
+Your appointment is confirmed with {doctor_name} on {slot_date} at {slot_time} at our {clinic_location} clinic.
+Please bring your ID and insurance card. Attached is the New Patient Intake Form.
+
+Thanks,
+Clinic Scheduling Team

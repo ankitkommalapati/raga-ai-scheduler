@@ -1,0 +1,9 @@
+Subject: Reminder: Upcoming Appointment
+
+Hi {first_name},
+
+This is a reminder for your appointment with {doctor_name} on {slot_date} at {slot_time}.
+See you soon!
+
+Thanks,
+Clinic Scheduling Team

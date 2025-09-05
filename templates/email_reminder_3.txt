@@ -1,0 +1,9 @@
+Subject: Final Reminder: Your Appointment Today
+
+Hi {first_name},
+
+Your appointment with {doctor_name} is today at {slot_time}.
+Please reply: FORMS YES/NO; VISIT CONFIRM/CANCEL (reason if cancel).
+
+Thanks,
+Clinic Scheduling Team

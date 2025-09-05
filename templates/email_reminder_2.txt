@@ -1,0 +1,10 @@
+Subject: Action Needed: Forms & Confirmation
+
+Hi {first_name},
+
+Two quick checks before your visit with {doctor_name} on {slot_date} at {slot_time}:
+1) Have you completed the intake forms? (Reply YES/NO)
+2) Is your visit confirmed? (Reply CONFIRM/CANCEL) If cancel, please share reason.
+
+Thanks,
+Clinic Scheduling Team
