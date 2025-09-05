@@ -2,7 +2,7 @@ import os
 import uuid
 import pandas as pd
 import streamlit as st
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from scheduling import get_available_slots, book_slot, duration_for_patient_type
 from data_loader import load_patients, find_patient_by_name_dob, load_schedule, save_appointments, load_appointments
 from messaging import simulate_email, schedule_reminders_for_appointment, run_due_reminders
@@ -22,6 +22,8 @@ st.title("🩺 AI Scheduling Agent - Clinic Booking")
 # Sidebar: Admin actions
 with st.sidebar:
     st.header("Admin")
+
+    # Export admin report
     if st.button("Export Admin Report (Excel)"):
         appts = load_appointments()
         export_path = os.path.join(EXPORTS_DIR, f"admin_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
@@ -32,10 +34,43 @@ with st.sidebar:
             csv_path = export_path.replace(".xlsx", ".csv")
             appts.to_csv(csv_path, index=False)
             st.warning(f"openpyxl/xlsxwriter not found. Exported CSV instead: {csv_path}")
+
+    # Run due reminders
     st.divider()
     if st.button("Run Due Reminders Now"):
         n = run_due_reminders()
         st.info(f"Sent {n} due reminders. Check 'outbox/' and 'data/reminders.csv'.")
+
+    # Regenerate doctor schedule
+    st.divider()
+    if st.button("Regenerate Doctor Schedule"):
+        doctors = [
+            ("D1", "Dr. Maya Rao"),
+            ("D2", "Dr. Arvind Nair"),
+            ("D3", "Dr. Leena Kapoor"),
+        ]
+        start_date = datetime.today().replace(hour=9, minute=0, second=0, microsecond=0)
+        days = 7  # generate for next 7 days
+        slot_length = 30
+
+        rows = []
+        for d_id, d_name in doctors:
+            for day in range(days):
+                day_start = start_date + timedelta(days=day)
+                for i in range(16):  # 9:00 to 17:00
+                    slot_start = day_start + timedelta(minutes=i * slot_length)
+                    slot_end = slot_start + timedelta(minutes=slot_length)
+                    rows.append({
+                        "doctor_id": d_id,
+                        "doctor_name": d_name,
+                        "slot_start": slot_start.strftime("%Y-%m-%d %H:%M"),
+                        "slot_end": slot_end.strftime("%Y-%m-%d %H:%M"),
+                        "available": True
+                    })
+
+        df = pd.DataFrame(rows)
+        df.to_csv(SCHEDULE_PATH, index=False)
+        st.success(f"✅ Regenerated schedule with {len(df)} slots for next {days} days.")
 
 # Conversation-like flow
 st.subheader("Patient Greeting")

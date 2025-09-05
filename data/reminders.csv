@@ -1,1 +1,4 @@
 appointment_id,reminder_number,scheduled_for,sent_at,channel,response_forms_filled,response_confirmed,response_cancel_reason
+9f046642,1,2025-09-02 13:30,,email,,,
+9f046642,2,2025-09-04 13:30,,email,,,
+9f046642,3,2025-09-05 11:30,,email,,,

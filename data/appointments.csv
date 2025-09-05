@@ -1,1 +1,2 @@
 appointment_id,patient_id,patient_name,dob,patient_type,doctor_id,doctor_name,slot_start,slot_end,clinic_location,insurance_carrier,member_id,group_number,intake_form_sent,confirmation_sent,status
+9f046642,,Ankit K,2003-11-12,new,D1,Dr. Maya Rao,2025-09-05 13:30:00,2025-09-05 14:30:00,Main Clinic - Bengaluru,ICICI,420102,34,False,False,Booked
