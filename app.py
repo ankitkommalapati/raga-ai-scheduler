@@ -2,7 +2,7 @@ import os
 import uuid
 import pandas as pd
 import streamlit as st
-from datetime import datetime, timedelta
+from datetime import datetime, date
 from scheduling import get_available_slots, book_slot, duration_for_patient_type
 from data_loader import load_patients, find_patient_by_name_dob, load_schedule, save_appointments, load_appointments
 from messaging import simulate_email, schedule_reminders_for_appointment, run_due_reminders
@@ -14,6 +14,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 FORMS_DIR = os.path.join(os.path.dirname(__file__), "forms")
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 EXPORTS_DIR = os.path.join(os.path.dirname(__file__), "exports")
+
+SCHEDULE_PATH = os.path.join(DATA_DIR, "doctor_schedule.csv")
 
 st.title("🩺 AI Scheduling Agent - Clinic Booking")
 
@@ -40,7 +42,13 @@ st.subheader("Patient Greeting")
 with st.form("greeting_form"):
     first = st.text_input("First Name *")
     last = st.text_input("Last Name *")
-    dob = st.date_input("Date of Birth *", format="YYYY-MM-DD")
+    dob = st.date_input(
+        "Date of Birth *",
+        min_value=date(1940, 1, 1),
+        max_value=date.today(),
+        value=date(1990, 1, 1),
+        format="YYYY-MM-DD"
+    )
     preferred_doctor = st.selectbox("Preferred Doctor", ["Any", "Dr. Maya Rao", "Dr. Arvind Nair", "Dr. Leena Kapoor"])
     clinic_location = st.selectbox("Clinic Location", ["Main Clinic - Bengaluru", "Satellite - Indiranagar"])
     submitted = st.form_submit_button("Continue")
@@ -68,82 +76,114 @@ if submitted:
 if "greeting" in st.session_state:
     g = st.session_state["greeting"]
     st.subheader("Smart Scheduling")
-    duration = duration_for_patient_type(g["patient_type"])  # 60 for new, 30 for returning
+    duration = duration_for_patient_type(g["patient_type"])
     st.write(f"Recommended duration: **{duration} minutes** for a **{g['patient_type']}** patient.")
 
     schedule = load_schedule()
     slots = get_available_slots(schedule, g["preferred_doctor"], duration)
-    st.write("Available slots:")
-    st.dataframe(slots.head(25))
 
-    with st.form("slot_select"):
-        slot_idx = st.number_input("Enter row index of desired slot", min_value=0, max_value=len(slots)-1, step=1)
-        insurance_carrier = st.text_input("Insurance Carrier *")
-        member_id = st.text_input("Member ID *")
-        group_number = st.text_input("Group Number *")
-        confirm = st.form_submit_button("Confirm Appointment")
+    if not slots.empty:
+        st.write("Available slots:")
 
-    if confirm:
-        chosen = slots.iloc[int(slot_idx)]
-        appointment_id = str(uuid.uuid4())[:8]
+        # Reset index so we can display "Column"
+        display_slots = slots.reset_index(drop=True).copy()
+        display_slots.index = display_slots.index + 1  # start from 1
+        display_slots.index.name = "Column"
 
-        # Book slot & write appointment
-        booked = book_slot(chosen, duration)
-        appt_record = {
-            "appointment_id": appointment_id,
-            "patient_id": g["patient_id"] or "",
-            "patient_name": f"{g['first']} {g['last']}",
-            "dob": g["dob"],
-            "patient_type": g["patient_type"],
-            "doctor_id": booked["doctor_id"],
-            "doctor_name": booked["doctor_name"],
-            "slot_start": booked["slot_start"],
-            "slot_end": booked["slot_end"],
-            "clinic_location": g["clinic_location"],
-            "insurance_carrier": insurance_carrier,
-            "member_id": member_id,
-            "group_number": group_number,
-            "intake_form_sent": False,
-            "confirmation_sent": False,
-            "status": "Booked"
-        }
-        save_appointments([appt_record])
+        # Replace boolean availability with ✅ / ❌
+        display_slots["Availability"] = display_slots["available"].apply(lambda x: "✅" if x else "❌")
 
-        # Send confirmation & intake (simulated email)
-        slot_dt = datetime.strptime(booked["slot_start"], "%Y-%m-%d %H:%M")
-        slot_date = slot_dt.strftime("%b %d, %Y")
-        slot_time = slot_dt.strftime("%I:%M %p")
-        simulate_email(
-            to_email=g.get("email") or "new.patient@example.com",
-            template="email_confirm.txt",
-            context={
-                "first_name": g["first"],
+        # Keep only renamed columns
+        display_slots = display_slots.rename(columns={
+            "doctor_id": "Doctor ID",
+            "doctor_name": "Doctor Name",
+            "slot_start": "Slot Start",
+            "slot_end": "Slot End"
+        })[["Doctor ID", "Doctor Name", "Slot Start", "Slot End", "Availability"]]
+
+        st.dataframe(display_slots)
+
+        with st.form("slot_select"):
+            slot_idx = st.number_input(
+                "Enter Column number of desired slot",
+                min_value=1,
+                max_value=len(slots),
+                step=1,
+                value=1
+            )
+            insurance_carrier = st.text_input("Insurance Carrier *")
+            member_id = st.text_input("Member ID *")
+            group_number = st.text_input("Group Number *")
+            confirm = st.form_submit_button("Confirm Appointment")
+
+        if confirm:
+            chosen = slots.iloc[int(slot_idx) - 1]  # subtract 1 since display starts at 1
+            appointment_id = str(uuid.uuid4())[:8]
+
+            # Book slot & write appointment (updates doctor_schedule.csv)
+            booked = book_slot(chosen, duration, schedule_path=SCHEDULE_PATH)
+
+            appt_record = {
+                "appointment_id": appointment_id,
+                "patient_id": g["patient_id"] or "",
+                "patient_name": f"{g['first']} {g['last']}",
+                "dob": g["dob"],
+                "patient_type": g["patient_type"],
+                "doctor_id": booked["doctor_id"],
                 "doctor_name": booked["doctor_name"],
-                "slot_date": slot_date,
-                "slot_time": slot_time,
+                "slot_start": booked["slot_start"],
+                "slot_end": booked["slot_end"],
                 "clinic_location": g["clinic_location"],
-            },
-            attach_form=True
-        )
-        simulate_email(
-            to_email=g.get("email") or "new.patient@example.com",
-            template="email_intake_form.txt",
-            context={
-                "first_name": g["first"],
-                "doctor_name": booked["doctor_name"],
-                "slot_date": slot_date,
-                "slot_time": slot_time,
-            },
-            attach_form=True
-        )
+                "insurance_carrier": insurance_carrier,
+                "member_id": member_id,
+                "group_number": group_number,
+                "intake_form_sent": False,
+                "confirmation_sent": False,
+                "status": "Booked"
+            }
+            save_appointments([appt_record])
 
-        # Create ICS calendar file
-        ics_path = create_ics_for_appointment(appointment_id, booked["doctor_name"], slot_dt, duration, g["clinic_location"])
+            # Send confirmation & intake (simulated email)
+            slot_dt = datetime.strptime(str(booked["slot_start"]), "%Y-%m-%d %H:%M:%S")
+            slot_date = slot_dt.strftime("%b %d, %Y")
+            slot_time = slot_dt.strftime("%I:%M %p")
+            simulate_email(
+                to_email=g.get("email") or "new.patient@example.com",
+                template="email_confirm.txt",
+                context={
+                    "first_name": g["first"],
+                    "doctor_name": booked["doctor_name"],
+                    "slot_date": slot_date,
+                    "slot_time": slot_time,
+                    "clinic_location": g["clinic_location"],
+                },
+                attach_form=True
+            )
+            simulate_email(
+                to_email=g.get("email") or "new.patient@example.com",
+                template="email_intake_form.txt",
+                context={
+                    "first_name": g["first"],
+                    "doctor_name": booked["doctor_name"],
+                    "slot_date": slot_date,
+                    "slot_time": slot_time,
+                },
+                attach_form=True
+            )
 
-        # Schedule reminders
-        schedule_reminders_for_appointment(appointment_id, g["first"], booked["doctor_name"], slot_dt, g.get("email"))
+            # Create ICS calendar file
+            ics_path = create_ics_for_appointment(
+                appointment_id, booked["doctor_name"], slot_dt, duration, g["clinic_location"]
+            )
 
-        st.success(f"Appointment confirmed! (ID: {appointment_id})")
-        st.write(f"Calendar file created: {ics_path}")
-        st.info("Confirmation & intake form emails placed in 'outbox/'. Three reminders scheduled automatically.")
-        st.balloons()
+            # Schedule reminders
+            schedule_reminders_for_appointment(
+                appointment_id, g["first"], booked["doctor_name"], slot_dt, g.get("email")
+            )
+
+            st.success(f"Appointment confirmed! (ID: {appointment_id})")
+            st.write(f"Calendar file created: {ics_path}")
+            st.info("Confirmation & intake form emails placed in 'outbox/'. Three reminders scheduled automatically.")
+            st.balloons()
+    else:
+        st.warning("⚠️ No available slots for the selected doctor/duration. Please try another doctor or location.")
