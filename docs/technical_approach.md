@@ -1,36 +1,151 @@
-## Architecture Overview
+# Technical Approach: AI Scheduling Agent (RagaAI Case Study)
 
-A modular Streamlit app orchestrates the full workflow:
+## 1. Objective
 
-- **Data Layer**: CSV/Excel simulate EMR & calendar (`data/`).
-- **Business Logic**: `scheduling.py` implements new/returning durations and slot blocking.
-- **Orchestration/UI**: `app.py` guides the patient from greeting → lookup → scheduling → confirmation → reminders.
-- **Integrations**: `calendar_utils.py` generates `.ics`; `messaging.py` simulates Email/SMS via `outbox/`. Intake form PDF is attached from `forms/`.
+Build a **production-grade scheduling assistant** that:
 
-## Framework Choice
+- Collects patient details (new vs returning)
+- Recommends appointment duration (60 mins new, 30 mins returning)
+- Checks doctor availability
+- Books slots without double-booking
+- Sends confirmation + intake form
+- Automates reminders (72h, 24h, 2h before)
+- Provides admin exports for reporting
 
-**LangChain/LangGraph-ready design**: The UI uses deterministic steps for reliability. Hooks can be added to call an LLM for free-text parsing (intent/entity extraction). We favor rule-based parsing for MVP stability, with optional LLM later.
+The goal is to balance **human-friendly UX** with **robust engineering practices**.
 
-## Integration Strategy
+---
 
-- **Patient DB (EMR)**: `patients.csv` (50 synthetic records) for lookup.
-- **Doctor Schedules**: `doctor_schedule.csv` + `.xlsx` with availability. Bookings update availability atomically.
-- **Communication**: Simulated email to files under `outbox/` with intake form attached.
-- **Data Export**: Admin report export to Excel/CSV in `exports/`.
+## 2. System Architecture
 
-## Challenges & Solutions
+Streamlit Frontend
+↓
+Scheduling Logic
+↓
+Data Persistence (CSV)
 
-- **No-shows risk**: Three reminders at 72h/24h/2h; the 2nd/3rd are actionable to collect form/confirmation.
-- **Excel dependencies**: Graceful fallback to CSV if `openpyxl/xlsxwriter` is missing.
-- **Calendar integration**: `.ics` files work cross-calendar without external APIs.
-- **Privacy**: No PHI leaves disk; synthetic data only.
+- Forms UI
+- doctor_schedule.csv
+- patients.csv
+- appointments.csv
+- reminders.csv
 
-## Edge Cases
+- **Streamlit**: conversational UI
+- **CSV files**: lightweight data store for demo
+- **Outbox folder**: simulated email system
+- **Exports folder**: admin reports (.xlsx/.csv)
+- **Templates folder**: email templates
 
-- New vs returning detection by (name, DOB) exact match; UI allows new record creation automatically if not found.
-- Double-booking prevented by atomic availability updates in `doctor_schedule.csv`.
-- Input validation for insurance fields (non-empty format) shown in UI.
+---
 
-## Success Criteria
+## 3. Workflow
 
-End-to-end booking visible in UI, `.ics` created, emails generated, reminders scheduled, admin export generated — matching the case-study deliverables.
+1. **Greeting & Lookup**
+
+   - Input: Name, DOB
+   - Check in `patients.csv`
+   - Output: new vs returning
+
+2. **Scheduling**
+
+   - Duration decided automatically (60 vs 30)
+   - Check `doctor_schedule.csv` for available slots
+   - New patients → require 2 consecutive slots
+
+3. **Confirmation**
+
+   - Collect insurance info
+   - Save appointment to `appointments.csv`
+   - Block chosen slots in `doctor_schedule.csv`
+
+4. **Communication**
+
+   - Generate `.ics` file for calendar
+   - Place simulated emails in `outbox/`
+   - Attach intake form PDF
+
+5. **Reminders**
+
+   - Add 3 reminder entries to `reminders.csv`
+   - Admin can trigger “Run Due Reminders Now”
+
+6. **Admin Tools**
+   - Export appointments as Excel/CSV
+   - Regenerate doctor schedule (for demos/testing)
+
+---
+
+## 4. Data Model
+
+### patients.csv
+
+| patient_id | first | last | dob | email |
+
+### doctor_schedule.csv
+
+| doctor_id | doctor_name | slot_start | slot_end | available |
+
+### appointments.csv
+
+| appointment_id | patient_id | doctor_name | slot_start | slot_end | insurance_carrier | status |
+
+### reminders.csv
+
+| reminder_id | appointment_id | send_time | status |
+
+---
+
+## 5. Edge Cases Handled
+
+- **Double-booking prevention** → 60 min blocks two consecutive 30-min slots.
+- **DOB picker range** → 1940 to current year (fixes UX issue).
+- **Unavailable slots** → friendly warning instead of crash.
+- **Admin regeneration** → one-click schedule reset in sidebar.
+
+---
+
+## 6. Design Decisions
+
+- **Streamlit over Flask/Django** → faster prototyping, interactive UI.
+- **CSV for persistence** → transparent for demo; replaceable with DB.
+- **Simulated email system** → ensures self-contained project, no SMTP/API setup required.
+- **Modular design** → each concern split into its own file:
+  - `scheduling.py`
+  - `messaging.py`
+  - `data_loader.py`
+  - `calendar_utils.py`
+
+---
+
+## 7. Future Expansion
+
+This project is structured so real-world integrations can be added without major rewrites:
+
+- **Database migration**: Replace CSV with SQLite/Postgres.
+- **Email/SMS integration**:
+  - Swap `simulate_email()` with `send_real_email()` (SMTP, SendGrid, AWS SES, Twilio).
+  - Credentials via environment variables.
+- **Authentication & roles**: Secure login for admin vs front-desk staff.
+- **Multi-clinic scaling**: Filter schedules by clinic.
+- **Analytics dashboard**: Show patient load, doctor utilization, cancellations.
+
+---
+
+## 8. Success Criteria
+
+- ✅ New & returning patients handled correctly
+- ✅ Smart slot duration (60 vs 30 mins)
+- ✅ Double-booking prevented
+- ✅ Confirmation + reminders generated
+- ✅ Admin exports work reliably
+- ✅ Demo runs end-to-end without external dependencies
+
+---
+
+## 9. Demo Walkthrough (3–5 min)
+
+1. New patient → 60 min slot booked, intake form sent
+2. Returning patient → 30 min slot booked
+3. Admin regenerates schedule
+4. Trigger reminders
+5. Export report
