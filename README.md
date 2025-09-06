@@ -80,3 +80,57 @@ streamlit run app.py
 ## 🎮 Demo Flow
 
 ### 1. First-time Setup
+- The `doctor_schedule.csv` is empty by default.
+- Go to the **sidebar** and click **“Regenerate Doctor Schedule”** to create a fresh 7-day calendar of slots.
+
+### 2. New Patient
+- Enter name + DOB not in system.
+- System assigns 60-min slot.
+- Patient is added to  `patients.csv`.
+- Confirmation email + intake form appear in `outbox/`.
+
+### 3. Returning Patient
+- Enter existing name + DOB.
+- System assigns 30-min slot.
+- Booking saved in `appointments.csv`.
+
+### 4. Admin Tools (Sidebar)
+- Export appointments to Excel/CSV.
+- Trigger due reminders.
+- Regenerate doctor schedule anytime.
+
+## 🧪 Running Tests
+
+```bash
+pytest -q
+```
+
+- Includes tests for:
+- - Scheduling logic (durations, double-booking prevention).
+- - Patient lookup (`first_name` / `last_name`).
+
+## 📂 Data Model
+
+- `patients.csv` → patient registry
+- `doctor_schedule.csv` → doctor availability (starts empty, regenerate via Admin)
+- `appointments.csv` → booked slots
+- `reminders.csv` → pending reminders
+
+## 🚧 Limitations
+
+- Data stored in CSV (not persistent DB).
+- Emails are simulated (saved to `outbox/` as `.txt`).
+- Authentication not implemented.
+
+## 🔮 Future Expansion
+
+- Replace CSV with **SQLite/Postgres**.
+- Swap simulated emails with **real SMTP / SendGrid / AWS SES**.
+- SMS reminders via Twilio.
+- Multi-clinic scaling.
+- Analytics dashboard for doctors/admins.
+
+## 🙌 Acknowledgements
+
+Built as part of **RagaAI Data Science Intern Case Study**.
+Designed to feel like a real-world system while staying self-contained for easy demo.
