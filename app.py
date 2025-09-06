@@ -73,7 +73,6 @@ with st.sidebar:
         df.to_csv(SCHEDULE_PATH, index=False)
         st.success(f"✅ Regenerated schedule with {len(df)} slots for next {days} days.")
 
-# Conversation-like flow
 st.subheader("Patient Greeting")
 with st.form("greeting_form"):
     first = st.text_input("First Name *")
@@ -128,13 +127,11 @@ if "greeting" in st.session_state:
 
         # Reset index so we can display "Column"
         display_slots = slots.reset_index(drop=True).copy()
-        display_slots.index = display_slots.index + 1  # start from 1
+        display_slots.index = display_slots.index + 1
         display_slots.index.name = "Column"
 
-        # Replace boolean availability with ✅ / ❌
         display_slots["Availability"] = display_slots["available"].apply(lambda x: "✅" if x else "❌")
 
-        # Keep only renamed columns
         display_slots = display_slots.rename(columns={
             "doctor_id": "Doctor ID",
             "doctor_name": "Doctor Name",
@@ -158,7 +155,7 @@ if "greeting" in st.session_state:
             confirm = st.form_submit_button("Confirm Appointment")
 
         if confirm:
-            chosen = slots.iloc[int(slot_idx) - 1]  # subtract 1 since display starts at 1
+            chosen = slots.iloc[int(slot_idx) - 1]
             appointment_id = str(uuid.uuid4())[:8]
 
             # Book slot & write appointment (updates doctor_schedule.csv)

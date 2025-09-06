@@ -66,7 +66,7 @@ def run_due_reminders() -> int:
     sent = 0
     for idx, row in df.iterrows():
         if not row["sent_at"] and datetime.strptime(row["scheduled_for"], "%Y-%m-%d %H:%M") <= now:
-            # simulate sending
+            # simulates messaging
             content = f"Subject: Reminder #{row['reminder_number']}\n\nThis is an automated reminder."
             _write_outbox("patient@example.com", content)
             df.loc[idx, "sent_at"] = now.strftime("%Y-%m-%d %H:%M")

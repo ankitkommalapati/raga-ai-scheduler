@@ -17,7 +17,7 @@ def get_available_slots(schedule, doctor_name, duration):
 
     available = []
     if duration == 30:
-        # Simple: return available slots
+        # Return available slots
         available = slots[slots["available"]].copy()
     elif duration == 60:
         # Combine two consecutive slots into one 60-min slot
@@ -28,7 +28,7 @@ def get_available_slots(schedule, doctor_name, duration):
                 s1["doctor_id"] == s2["doctor_id"]
                 and s1["available"] == True
                 and s2["available"] == True
-                and s2["slot_start"] == s1["slot_end"]  # consecutive
+                and s2["slot_start"] == s1["slot_end"] 
             ):
                 available.append({
                     "doctor_id": s1["doctor_id"],
@@ -36,7 +36,7 @@ def get_available_slots(schedule, doctor_name, duration):
                     "slot_start": s1["slot_start"],
                     "slot_end": s2["slot_end"],
                     "available": True,
-                    "slot_indices": [i, i+1]  # track indices to block later
+                    "slot_indices": [i, i+1]
                 })
         available = pd.DataFrame(available)
 
