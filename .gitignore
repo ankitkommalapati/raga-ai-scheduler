@@ -2,3 +2,11 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Ignore contents of outbox and exports, but keep folders
+outbox/*
+exports/*
+
+# Keep .gitkeep in both
+!outbox/.gitkeep
+!exports/.gitkeep
