@@ -75,7 +75,7 @@ Streamlit Frontend -> Scheduling Logic -> Data Persistence (CSV)
 
 ### patients.csv
 
-| patient_id | first | last | dob | email |
+| patient_id | first_name | last_name | dob | email |
 
 ### doctor_schedule.csv
 
