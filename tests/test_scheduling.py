@@ -6,11 +6,31 @@ from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scheduling import duration_for_patient_type, get_available_slots, book_slot
+from data_loader import load_patients, find_patient_by_name_dob
 
 
 def test_duration_for_patient_type():
     assert duration_for_patient_type("new") == 60
     assert duration_for_patient_type("returning") == 30
+
+
+def test_find_patient_by_name_dob(tmp_path):
+    # Prepare sample patients.csv
+    patients_path = tmp_path / "patients.csv"
+    patients = pd.DataFrame([
+        {"patient_id": "P001", "first_name": "Amit", "last_name": "Sharma", "dob": "1985-03-22", "email": "amit@example.com"},
+        {"patient_id": "P002", "first_name": "Neha", "last_name": "Verma", "dob": "1992-07-15", "email": "neha@example.com"},
+    ])
+    patients.to_csv(patients_path, index=False)
+
+    # Load and test lookup
+    df = pd.read_csv(patients_path)
+    found = find_patient_by_name_dob(df, "Amit", "Sharma", "1985-03-22")
+    assert found is not None
+    assert found["patient_id"] == "P001"
+
+    not_found = find_patient_by_name_dob(df, "John", "Doe", "1990-01-01")
+    assert not_found is None
 
 
 def test_get_available_slots_returns_dataframe():

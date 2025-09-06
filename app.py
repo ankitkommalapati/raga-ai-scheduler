@@ -16,6 +16,7 @@ TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 EXPORTS_DIR = os.path.join(os.path.dirname(__file__), "exports")
 
 SCHEDULE_PATH = os.path.join(DATA_DIR, "doctor_schedule.csv")
+PATIENTS_PATH = os.path.join(DATA_DIR, "patients.csv")
 
 st.title("🩺 AI Scheduling Agent - Clinic Booking")
 
@@ -103,9 +104,14 @@ if submitted:
         email = None
 
     st.session_state["greeting"] = {
-        "first": first, "last": last, "dob": dob.strftime("%Y-%m-%d"),
-        "patient_type": patient_type, "preferred_doctor": preferred_doctor,
-        "clinic_location": clinic_location, "patient_id": patient_id, "email": email
+        "first_name": first,
+        "last_name": last,
+        "dob": dob.strftime("%Y-%m-%d"),
+        "patient_type": patient_type,
+        "preferred_doctor": preferred_doctor,
+        "clinic_location": clinic_location,
+        "patient_id": patient_id,
+        "email": email
     }
 
 if "greeting" in st.session_state:
@@ -161,7 +167,7 @@ if "greeting" in st.session_state:
             appt_record = {
                 "appointment_id": appointment_id,
                 "patient_id": g["patient_id"] or "",
-                "patient_name": f"{g['first']} {g['last']}",
+                "patient_name": f"{g['first_name']} {g['last_name']}",
                 "dob": g["dob"],
                 "patient_type": g["patient_type"],
                 "doctor_id": booked["doctor_id"],
@@ -178,6 +184,23 @@ if "greeting" in st.session_state:
             }
             save_appointments([appt_record])
 
+            # Save new patient if not in patients.csv
+            if g["patient_type"] == "new":
+                new_id = "P" + str(uuid.uuid4())[:4].upper()
+                new_row = pd.DataFrame([{
+                    "patient_id": new_id,
+                    "first_name": g["first_name"],
+                    "last_name": g["last_name"],
+                    "dob": g["dob"],
+                    "email": g.get("email") or "new.patient@example.com"
+                }])
+                if os.path.exists(PATIENTS_PATH):
+                    old = pd.read_csv(PATIENTS_PATH)
+                    out = pd.concat([old, new_row], ignore_index=True)
+                else:
+                    out = new_row
+                out.to_csv(PATIENTS_PATH, index=False)
+
             # Send confirmation & intake (simulated email)
             slot_dt = datetime.strptime(str(booked["slot_start"]), "%Y-%m-%d %H:%M:%S")
             slot_date = slot_dt.strftime("%b %d, %Y")
@@ -186,7 +209,7 @@ if "greeting" in st.session_state:
                 to_email=g.get("email") or "new.patient@example.com",
                 template="email_confirm.txt",
                 context={
-                    "first_name": g["first"],
+                    "first_name": g["first_name"],
                     "doctor_name": booked["doctor_name"],
                     "slot_date": slot_date,
                     "slot_time": slot_time,
@@ -198,7 +221,7 @@ if "greeting" in st.session_state:
                 to_email=g.get("email") or "new.patient@example.com",
                 template="email_intake_form.txt",
                 context={
-                    "first_name": g["first"],
+                    "first_name": g["first_name"],
                     "doctor_name": booked["doctor_name"],
                     "slot_date": slot_date,
                     "slot_time": slot_time,
@@ -213,7 +236,7 @@ if "greeting" in st.session_state:
 
             # Schedule reminders
             schedule_reminders_for_appointment(
-                appointment_id, g["first"], booked["doctor_name"], slot_dt, g.get("email")
+                appointment_id, g["first_name"], booked["doctor_name"], slot_dt, g.get("email")
             )
 
             st.success(f"Appointment confirmed! (ID: {appointment_id})")
