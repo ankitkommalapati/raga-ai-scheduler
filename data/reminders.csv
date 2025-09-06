@@ -1,4 +1,1 @@
 reminder_id,appointment_id,patient_name,doctor_name,send_time,email,status,reminder_number,scheduled_for,sent_at,channel,response_forms_filled,response_confirmed,response_cancel_reason
-,3b8d3c24,,,,,,1.0,2025-09-04 11:00,,email,,,
-,3b8d3c24,,,,,,2.0,2025-09-06 11:00,,email,,,
-,3b8d3c24,,,,,,3.0,2025-09-07 09:00,,email,,,
