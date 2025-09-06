@@ -18,11 +18,7 @@ The goal is to balance **human-friendly UX** with **robust engineering practices
 
 ## 2. System Architecture
 
-Streamlit Frontend
-↓
-Scheduling Logic
-↓
-Data Persistence (CSV)
+Streamlit Frontend -> Scheduling Logic -> Data Persistence (CSV)
 
 - Forms UI
 - doctor_schedule.csv
